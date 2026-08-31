@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-backend-app
+  namespace: devops-learning
+  labels:
+    app: go-backend-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-backend-app
+  template:
+    metadata:
+      labels:
+        app: go-backend-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: go-backend
+        image: docker.io/channabsavaballolli/go-metrics-app:backend
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_USER
+          value: "devopsuser"
+        - name: DB_PASSWORD
+          value: "devopspass"
+        - name: DB_NAME
+          value: "devopsdb"
+        - name: PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-backend-service
+  namespace: devops-learning
+  labels:
+    app: go-backend-app
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: go-backend-app
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: go-backend-route
+  namespace: devops-learning
+  labels:
+    app: go-backend-app
+spec:
+  to:
+    kind: Service
+    name: go-backend-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge

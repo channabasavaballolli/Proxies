@@ -1,0 +1,219 @@
+---
+# Source: sysdig-deploy/charts/agent/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sysdig-agent
+  namespace: ibm-observe
+  labels:
+    helm.sh/chart: agent-2.9.2
+    app.kubernetes.io/name: agent
+    app.kubernetes.io/instance: sysdig-agent
+    app.kubernetes.io/version: "14.7.2"
+    app.kubernetes.io/managed-by: Helm
+    app: "sysdig-agent"
+    
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent
+      app.kubernetes.io/instance: sysdig-agent
+  template:
+    metadata:
+      name: sysdig-agent
+      labels:
+        
+        helm.sh/chart: agent-2.9.2
+        app.kubernetes.io/name: agent
+        app.kubernetes.io/instance: sysdig-agent
+        app.kubernetes.io/version: "14.7.2"
+        app.kubernetes.io/managed-by: Helm
+        app: "sysdig-agent"
+        
+        
+      
+      
+    spec:
+      serviceAccountName: sysdig-agent
+      tolerations:
+        
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/controlplane
+          operator: Equal
+          value: "true"
+        - effect: NoExecute
+          key: node-role.kubernetes.io/etcd
+          operator: Equal
+          value: "true"
+        - effect: NoExecute
+          key: CriticalAddonsOnly
+          operator: Equal
+          value: "true"
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostPID: true
+      terminationGracePeriodSeconds: 5
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                  - amd64
+                  - arm64
+                  - s390x
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                  - linux
+      
+      containers:
+        - name: sysdig
+          image: quay.io/sysdig/agent-slim:14.7.2
+          imagePullPolicy: IfNotPresent
+          resources:
+            
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+            requests:
+              cpu: 1000m
+              memory: 1024Mi
+          securityContext:
+            
+            privileged: true
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: K8S_NODE
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: SYSDIG_AGENT_DRIVER
+              value: universal_ebpf
+          readinessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /healthz
+              port: 24483
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            failureThreshold: 9
+          volumeMounts:
+            - mountPath: /host/dev
+              name: dev-vol
+              readOnly: true
+            - mountPath: /host/usr
+              name: usr-vol
+              readOnly: true
+            - mountPath: /host/proc
+              name: proc-vol
+              readOnly: true
+            - mountPath: /host/run
+              name: run-vol
+            - mountPath: /dev/shm
+              name: dshm
+            - mountPath: /opt/draios/etc/kubernetes/config
+              name: sysdig-agent-config
+            - mountPath: /opt/draios/etc/kubernetes/secrets
+              name: sysdig-agent-secrets
+            - mountPath: /etc/podinfo
+              name: podinfo
+            - mountPath: /host/etc
+              name: etc-vol
+              readOnly: true
+            - mountPath: /host/var/lib
+              name: varlib-vol
+            - mountPath: /host/var/data
+              name: vardata-vol
+            - mountPath: /host/var/run
+              name: varrun-vol
+            - mountPath: /host/sys/fs
+              name: sysfs-vol
+              readOnly: true
+            - mountPath: /root/.sysdig
+              name: bpf-probes
+            - mountPath: /sys/kernel/debug
+              name: sys-tracing
+              readOnly: true
+      volumes:
+        - name: dev-vol
+          hostPath:
+            path: /dev
+        - name: usr-vol
+          hostPath:
+            path: /usr
+        - name: proc-vol
+          hostPath:
+            path: /proc
+        - name: run-vol
+          hostPath:
+            path: /run
+        - name: dshm
+          emptyDir:
+            medium: Memory
+        - name: sysdig-agent-config
+          configMap:
+            name: sysdig-agent
+            optional: true
+        - name: sysdig-agent-secrets
+          secret:
+            secretName: sysdig-agent
+        - name: podinfo
+          downwardAPI:
+            defaultMode: 420
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: namespace
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+              path: name
+        - name: sysfs-vol
+          hostPath:
+            path: /sys/fs
+        - name: modprobe-d
+          hostPath:
+            path: /etc/modprobe.d
+        - name: boot-vol
+          hostPath:
+            path: /boot
+        - name: modules-vol
+          hostPath:
+            path: /lib/modules
+        - name: varrun-vol
+          hostPath:
+            path: /var/run
+        - name: etc-vol
+          hostPath:
+            path: /etc
+        - name: varlib-vol
+          hostPath:
+            path: /var/lib
+        - name: vardata-vol
+          hostPath:
+            path: /var/data
+        - name: bpf-probes
+          emptyDir: {}
+        - name: sys-tracing
+          hostPath:
+            path: /sys/kernel/debug
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+

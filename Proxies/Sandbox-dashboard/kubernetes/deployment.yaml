@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-metrics-app
+  namespace: devops-learning
+  labels:
+    app: go-metrics-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-metrics-app
+  template:
+    metadata:
+      labels:
+        app: go-metrics-app
+    spec:
+      containers:
+      - name: go-app
+        # Replace with your container registry image path (e.g., IBM Cloud Container Registry)
+        image: us.icr.io/devops-learning-ns/go-metrics-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-metrics-service
+  namespace: devops-learning
+  labels:
+    app: go-metrics-app
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: go-metrics-app
+  type: ClusterIP
+---
+# Red Hat OpenShift custom resource to expose services externally
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: go-metrics-route
+  namespace: devops-learning
+  labels:
+    app: go-metrics-app
+spec:
+  to:
+    kind: Service
+    name: go-metrics-service
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge # OpenShift handles SSL/TLS termination automatically

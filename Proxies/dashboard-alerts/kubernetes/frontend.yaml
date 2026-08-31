@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-frontend-app
+  namespace: devops-learning
+  labels:
+    app: go-frontend-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: go-frontend-app
+  template:
+    metadata:
+      labels:
+        app: go-frontend-app
+    spec:
+      containers:
+      - name: go-frontend
+        image: docker.io/channabsavaballolli/go-metrics-app:frontend
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: BACKEND_API_URL
+          value: "https://go-backend-route-devops-learning.sandbox-dashboard-alerts-fd8e0ef2d08fcdd9052926b491f21d24-0000.eu-de.containers.appdomain.cloud"
+        - name: PORT
+          value: "8080"
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-frontend-service
+  namespace: devops-learning
+  labels:
+    app: go-frontend-app
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: go-frontend-app
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: go-frontend-route
+  namespace: devops-learning
+  labels:
+    app: go-frontend-app
+spec:
+  to:
+    kind: Service
+    name: go-frontend-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge

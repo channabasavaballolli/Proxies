@@ -1,0 +1,25 @@
+global:
+  sysdig:
+    accessKey: "67afa0a4-e10d-4836-ab0f-0450346c8ade"
+    region: "custom"
+    apiEndpoint: "eu-de.monitoring.cloud.ibm.com"
+  clusterConfig:
+    name: "sandbox-dashboard-alerts"
+
+agent:
+  ebpf:
+    enabled: true
+    kind: universal_ebpf
+  collectorSettings:
+    collectorHost: "ingest.eu-de.monitoring.cloud.ibm.com"
+  sysdig:
+    settings:
+      prometheus:
+        enabled: true
+        # Tell the agent to scrape endpoints annotated with prometheus.io/scrape
+        prom_service_discovery: true
+        log_errors: true
+
+# Disable Sysdig Secure Node Analyzer (since we only use Sysdig Monitor metrics)
+nodeAnalyzer:
+  enabled: false

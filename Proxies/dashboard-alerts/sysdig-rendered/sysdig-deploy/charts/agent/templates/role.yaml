@@ -1,0 +1,19 @@
+---
+# Source: sysdig-deploy/charts/agent/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sysdig-agent
+  namespace: ibm-observe
+rules:
+- apiGroups:
+    - coordination.k8s.io
+  resources:
+    - leases
+  verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+

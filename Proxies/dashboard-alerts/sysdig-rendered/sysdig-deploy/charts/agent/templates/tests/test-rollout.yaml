@@ -1,0 +1,32 @@
+---
+# Source: sysdig-deploy/charts/agent/templates/tests/test-rollout.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "sysdig-agent-test-rollout"
+  namespace: ibm-observe
+  labels:
+    helm.sh/chart: agent-2.9.2
+    app.kubernetes.io/version: "14.7.2"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  serviceAccountName: sysdig-agent
+  containers:
+    - name: kubectl
+      image: quay.io/sysdig/sysdig-kubectl:1.34.1-1.5.17
+      imagePullPolicy: IfNotPresent
+      command:
+      - kubectl
+      args:
+      - rollout
+      - status
+      - daemonset/sysdig-agent
+      - -n
+      - ibm-observe
+      - -w
+      - --timeout=300s
+  restartPolicy: Never
+

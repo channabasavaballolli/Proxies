@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBM Sandbox Observability Console</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #09090b;
+            --card-bg: rgba(20, 20, 25, 0.7);
+            --border-glow: rgba(139, 92, 246, 0.15);
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-rose: #f43f5e;
+            --accent-green: #10b981;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 118, 212, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            line-height: 1.5;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 2.5rem auto;
+            text-align: center;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 30%, #a78bfa 70%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Glassmorphic Cards */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.1);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.75rem;
+        }
+
+        .card-title span.badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-devops {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--accent-rose);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+
+        .badge-user {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        /* Forms and Controls */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Buttons */
+        .btn {
+            background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.25rem;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, var(--accent-cyan), #0891b2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-rose), #e11d48);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        /* VSI List */
+        .vsi-list {
+            margin-top: 1.5rem;
+            display: grid;
+            gap: 0.75rem;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .vsi-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .vsi-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .vsi-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .vsi-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 5999px;
+            display: inline-block;
+        }
+
+        .status-active {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        /* Toggle Switches */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+        }
+
+        .switch-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .switch-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .switch-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-rose);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Sliders */
+        .range-container {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 1rem 1.2rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+        }
+
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .range-title {
+            font-weight: 600;
+        }
+
+        .range-value {
+            color: var(--accent-rose);
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-rose);
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(244, 63, 94, 0.5);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Console Output Box */
+        .console-box {
+            background: #000000;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            padding: 1rem;
+            border-radius: 8px;
+            height: 130px;
+            overflow-y: auto;
+            color: #10b981;
+            margin-top: 1rem;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .console-line {
+            margin-bottom: 0.25rem;
+        }
+
+        .console-err {
+            color: var(--accent-rose);
+        }
+
+        .console-warn {
+            color: #f59e0b;
+        }
+
+        /* Links area */
+        .links-bar {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .links-bar a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .links-bar a:hover {
+            color: var(--accent-purple);
+            text-decoration: underline;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>IBM Sandbox Observability Platform</h1>
+        <p>Local Simulation & Fault-Injection Control Console</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- Left: Client User Actions Console -->
+        <div class="card">
+            <h2 class="card-title">
+                <span>Sandbox Portal Console</span>
+                <span class="badge badge-user">User UI</span>
+            </h2>
+
+            <!-- Authentication Interface -->
+            <div style="background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.04);">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; font-family: 'Outfit';">Security & Access Management</h3>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" placeholder="Enter admin" value="admin">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="Enter password" value="password">
+                </div>
+                <button class="btn btn-cyan btn-sm" onclick="login()">Authenticate Portal</button>
+            </div>
+
+            <!-- VSI Provisioner -->
+            <div style="background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.04);">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; font-family: 'Outfit';">Provision Sandbox VSIs</h3>
+                <div class="form-group">
+                    <label>VSI Name</label>
+                    <div class="input-group">
+                        <input type="text" id="vsi-name" placeholder="e.g., ibm-vsi-cluster-01">
+                        <button class="btn" onclick="createVSI()">Provision VSI</button>
+                    </div>
+                </div>
+                
+                <h4 style="font-size: 0.9rem; margin-top: 1rem; color: var(--text-muted);">Active Instances</h4>
+                <div class="vsi-list" id="vsi-container">
+                    <!-- Dynamic VSI lists loaded here -->
+                    <div class="vsi-item">
+                        <div class="vsi-info">
+                            <span class="vsi-name">Loading sandbox instances...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DB Query executor -->
+            <div style="background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; font-family: 'Outfit';">PostgreSQL Database Operations</h3>
+                <button class="btn btn-outline btn-sm" onclick="testDBQuery()">Execute PostgreSQL Stats Query</button>
+                <div class="console-box" id="console">
+                    <div class="console-line">> Console ready. Perform operations to view logging logs...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: DevOps DevOps Fault Injection Console -->
+        <div class="card">
+            <h2 class="card-title">
+                <span>DevOps Fault Injection Engine</span>
+                <span class="badge badge-devops">Control Panel</span>
+            </h2>
+
+            <!-- Latency Simulation -->
+            <div class="switch-container">
+                <div class="switch-info">
+                    <span class="switch-title">Inject API Latency</span>
+                    <span class="switch-desc">Forces API responses to exceed 5 seconds threshold</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="latency-toggle" onchange="toggleLatency()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Database Outage Simulation -->
+            <div class="switch-container">
+                <div class="switch-info">
+                    <span class="switch-title">Inject Postgres Failure</span>
+                    <span class="switch-desc">Simulates database connection timeout / failure</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="db-error-toggle" onchange="toggleDBError()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- VSI Quota Breaker -->
+            <div class="switch-container">
+                <div class="switch-info">
+                    <span class="switch-title">VSI Quota Constraint</span>
+                    <span class="switch-desc">Reduces quota limit from 10 down to 3 VSIs</span>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="vsi-quota-toggle" onchange="toggleVSIQuota()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- ROKS Saturation controls -->
+            <div class="range-container">
+                <div class="range-header">
+                    <span class="range-title">ROKS CPU Saturation</span>
+                    <span class="range-value" id="cpu-val">45.0%</span>
+                </div>
+                <input type="range" id="cpu-slider" min="10" max="100" step="0.5" value="45" oninput="updateSaturationValues()">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Golden Signal Alert Threshold: > 80%</div>
+            </div>
+
+            <div class="range-container">
+                <div class="range-header">
+                    <span class="range-title">ROKS Memory Saturation</span>
+                    <span class="range-value" id="mem-val">50.0%</span>
+                </div>
+                <input type="range" id="mem-slider" min="10" max="100" step="0.5" value="50" oninput="updateSaturationValues()">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Golden Signal Alert Threshold: > 75%</div>
+            </div>
+
+            <div class="range-container">
+                <div class="range-header">
+                    <span class="range-title">UI Page Load Simulation</span>
+                    <span class="range-value" id="ui-val">1.2s</span>
+                </div>
+                <input type="range" id="ui-slider" min="0.1" max="10" step="0.1" value="1.2" oninput="updateSaturationValues()">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Golden Signal Alert Threshold: > 5s</div>
+            </div>
+
+            <!-- Quick Fault Scenarios -->
+            <div style="margin-top: 1.5rem; background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem; font-family: 'Outfit';">Simulated Incidents</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn btn-outline btn-sm" onclick="triggerIncident('outage')">Simulate PostgreSQL Outage</button>
+                    <button class="btn btn-outline btn-sm" onclick="triggerIncident('overload')">Simulate ROKS Saturation Incident</button>
+                    <button class="btn btn-outline btn-sm" onclick="clearAllSimulations()">Clear All Fault Injections</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Monitoring Stack quick links -->
+    <div class="links-bar">
+        <a href="http://localhost:3000" target="_blank">🌐 Grafana Dashboard</a>
+        <a href="http://localhost:9090" target="_blank">📈 Prometheus Graph</a>
+        <a href="http://localhost:9113/metrics" target="_blank">📊 NGINX Exporter</a>
+        <a href="/status" target="_blank">⚙️ NGINX status</a>
+    </div>
+
+    <script>
+        // Set API host base (points to same host proxy)
+        const API_BASE = '/api';
+
+        // Load initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadVSIs();
+            loadSimulationStatus();
+            
+            // Periodically report client UI load metric back to backend
+            setInterval(reportUILoad, 15000);
+            // Report initially
+            setTimeout(reportUILoad, 2000);
+        });
+
+        // Logger helper
+        function writeConsole(text, type = 'info') {
+            const consoleBox = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            let lineClass = 'console-line';
+            if (type === 'error') lineClass += ' console-err';
+            if (type === 'warn') lineClass += ' console-warn';
+
+            consoleBox.innerHTML += `<div class="${lineClass}">[${timestamp}] ${text}</div>`;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        // Fetch simulation settings status
+        async function loadSimulationStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                if (!res.ok) throw new Error('Failed to load status');
+                const data = await res.json();
+                
+                document.getElementById('latency-toggle').checked = data.latencySimulated;
+                document.getElementById('db-error-toggle').checked = data.dbErrorSimulated;
+                document.getElementById('vsi-quota-toggle').checked = data.vsiQuotaSimulated;
+                
+                document.getElementById('cpu-slider').value = data.simulatedCPU;
+                document.getElementById('cpu-val').innerText = `${data.simulatedCPU.toFixed(1)}%`;
+                
+                document.getElementById('mem-slider').value = data.simulatedMemory;
+                document.getElementById('mem-val').innerText = `${data.simulatedMemory.toFixed(1)}%`;
+                
+                document.getElementById('ui-slider').value = data.simulatedUILoad;
+                document.getElementById('ui-val').innerText = `${data.simulatedUILoad.toFixed(1)}s`;
+                
+                writeConsole('Loaded operational states from Sandbox backend');
+            } catch (err) {
+                writeConsole('Error loading backend states: ' + err.message, 'error');
+            }
+        }
+
+        // Fetch list of VSIs
+        async function loadVSIs() {
+            try {
+                const res = await fetch(`${API_BASE}/vsi`);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({error: 'HTTP error ' + res.status}));
+                    throw new Error(errData.error);
+                }
+                const vsis = await res.json();
+                
+                const container = document.getElementById('vsi-container');
+                container.innerHTML = '';
+                
+                if (vsis.length === 0) {
+                    container.innerHTML = `
+                        <div class="vsi-item">
+                            <div class="vsi-info">
+                                <span class="vsi-name" style="color: var(--text-muted); font-weight: normal;">No VSIs provisioned. Ready to create.</span>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                vsis.forEach(vsi => {
+                    const dateStr = new Date(vsi.created_at).toLocaleString();
+                    container.innerHTML += `
+                        <div class="vsi-item">
+                            <div class="vsi-info">
+                                <span class="vsi-name">${vsi.name}</span>
+                                <span class="vsi-meta">
+                                    <span class="status-dot status-active"></span>
+                                    Status: ${vsi.status} | ID: ${vsi.id} | Created: ${dateStr}
+                                </span>
+                            </div>
+                            <button class="btn btn-danger btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="deleteVSI(${vsi.id})">Delete</button>
+                        </div>`;
+                });
+            } catch (err) {
+                const container = document.getElementById('vsi-container');
+                container.innerHTML = `
+                    <div class="vsi-item" style="border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.05);">
+                        <div class="vsi-info">
+                            <span class="vsi-name" style="color: var(--accent-rose);">Outage Detected</span>
+                            <span class="vsi-meta" style="color: rgba(244,63,94,0.7);">${err.message}</span>
+                        </div>
+                    </div>`;
+                writeConsole('Error fetching VSIs: ' + err.message, 'error');
+            }
+        }
+
+        // Create a VSI
+        async function createVSI() {
+            const nameInput = document.getElementById('vsi-name');
+            const name = nameInput.value.trim() || 'vsi-' + Math.floor(Math.random() * 9000 + 1000);
+            
+            writeConsole(`Requesting provisioning for VSI: ${name}...`);
+            
+            const start = performance.now();
+            try {
+                const res = await fetch(`${API_BASE}/vsi`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+                
+                const timeTaken = ((performance.now() - start) / 1000).toFixed(4);
+                
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({error: 'HTTP error ' + res.status}));
+                    throw new Error(errData.error);
+                }
+                
+                const created = await res.json();
+                writeConsole(`Success: VSI ID ${created.id} provisioned in ${timeTaken}s`);
+                nameInput.value = '';
+                loadVSIs();
+            } catch (err) {
+                writeConsole('Provisioning failed: ' + err.message, 'error');
+                loadVSIs();
+            }
+        }
+
+        // Delete a VSI
+        async function deleteVSI(id) {
+            writeConsole(`Requesting termination for VSI ID: ${id}...`);
+            try {
+                const res = await fetch(`${API_BASE}/vsi?id=${id}`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) throw new Error('Delete call returned status ' + res.status);
+                writeConsole(`Success: Terminated VSI ID ${id}`);
+                loadVSIs();
+            } catch (err) {
+                writeConsole('Deletion failed: ' + err.message, 'error');
+            }
+        }
+
+        // Authenticate mock login
+        async function login() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            
+            writeConsole(`Attempting credentials auth for user [${u}]...`);
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Authentication rejected');
+                }
+                writeConsole(`Auth Approved. Session Token generated: ${data.token.substring(0, 10)}...`);
+            } catch (err) {
+                writeConsole(`Auth Rejected: ${err.message}`, 'error');
+            }
+        }
+
+        // Run DB Queries
+        async function testDBQuery() {
+            writeConsole('Running PostgreSQL stats scan...');
+            try {
+                const res = await fetch(`${API_BASE}/db-query`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'DB query execution error');
+                writeConsole(`DB Stats: ${data.rows_count} records retrieved in ${data.execution_time}`);
+            } catch (err) {
+                writeConsole(`DB execution error: ${err.message}`, 'error');
+            }
+        }
+
+        // Report client UI load metric back to backend
+        async function reportUILoad() {
+            // Read simulated load value
+            const simulatedLoad = parseFloat(document.getElementById('ui-slider').value);
+            
+            // Add a small jitter (e.g., +/- 0.05s)
+            const jitter = (Math.random() - 0.5) * 0.1;
+            const finalLoad = Math.max(0.01, simulatedLoad + jitter);
+            
+            try {
+                await fetch(`${API_BASE}/ui-load-record`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ load_time: finalLoad })
+                });
+            } catch (e) {
+                // Fail silently on background logging telemetry
+            }
+        }
+
+        // DevOps: Toggle Latency Injection
+        async function toggleLatency() {
+            const isChecked = document.getElementById('latency-toggle').checked;
+            writeConsole(`Setting fault latency injection: ${isChecked}...`, 'warn');
+            try {
+                const res = await fetch(`${API_BASE}/simulate/latency`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enable: isChecked })
+                });
+                if (!res.ok) throw new Error();
+                writeConsole(`Latency injection state successfully updated to ${isChecked}`);
+            } catch (err) {
+                writeConsole('Failed to update latency injection state', 'error');
+            }
+        }
+
+        // DevOps: Toggle Database Outage
+        async function toggleDBError() {
+            const isChecked = document.getElementById('db-error-toggle').checked;
+            writeConsole(`Setting database outage injection: ${isChecked}...`, 'warn');
+            try {
+                const res = await fetch(`${API_BASE}/simulate/db-error`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enable: isChecked })
+                });
+                if (!res.ok) throw new Error();
+                writeConsole(`Postgres failure state successfully updated to ${isChecked}`);
+                // Refresh list to instantly show outage state in UI
+                loadVSIs();
+            } catch (err) {
+                writeConsole('Failed to update Postgres failure state', 'error');
+            }
+        }
+
+        // DevOps: Toggle Quota
+        async function toggleVSIQuota() {
+            const isChecked = document.getElementById('vsi-quota-toggle').checked;
+            writeConsole(`Setting VSI limit constraint: ${isChecked ? 'Quota to 3 VSIs' : 'Quota to 10 VSIs'}...`, 'warn');
+            try {
+                const res = await fetch(`${API_BASE}/simulate/vsi-quota`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enable: isChecked })
+                });
+                if (!res.ok) throw new Error();
+                writeConsole(`VSI quota limitation state successfully updated`);
+            } catch (err) {
+                writeConsole('Failed to update quota limit state', 'error');
+            }
+        }
+
+        // DevOps: Saturation and UI load updates
+        async function updateSaturationValues() {
+            const cpu = parseFloat(document.getElementById('cpu-slider').value);
+            const memory = parseFloat(document.getElementById('mem-slider').value);
+            const uiLoad = parseFloat(document.getElementById('ui-slider').value);
+
+            document.getElementById('cpu-val').innerText = `${cpu.toFixed(1)}%`;
+            document.getElementById('mem-val').innerText = `${memory.toFixed(1)}%`;
+            document.getElementById('ui-val').innerText = `${uiLoad.toFixed(1)}s`;
+
+            try {
+                await fetch(`${API_BASE}/simulate/cpu-saturation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cpu: cpu, memory: memory, ui_load: uiLoad })
+                });
+                
+                // Immediately report UI load once to reflect slider changes instantly
+                reportUILoad();
+            } catch (err) {
+                // Quietly log
+            }
+        }
+
+        // DevOps: Incident Trigger Buttons
+        function triggerIncident(type) {
+            if (type === 'outage') {
+                writeConsole('Triggering PostgreSQL Database Outage Incident Scenario!', 'error');
+                document.getElementById('db-error-toggle').checked = true;
+                toggleDBError();
+            } else if (type === 'overload') {
+                writeConsole('Triggering ROKS cluster load saturation incident!', 'error');
+                document.getElementById('cpu-slider').value = 88.5;
+                document.getElementById('mem-slider').value = 81.0;
+                document.getElementById('ui-slider').value = 6.4;
+                updateSaturationValues();
+            }
+        }
+
+        function clearAllSimulations() {
+            writeConsole('Restoring normal system operational conditions...', 'info');
+            document.getElementById('db-error-toggle').checked = false;
+            document.getElementById('latency-toggle').checked = false;
+            document.getElementById('vsi-quota-toggle').checked = false;
+            document.getElementById('cpu-slider').value = 45.0;
+            document.getElementById('mem-slider').value = 50.0;
+            document.getElementById('ui-slider').value = 1.2;
+
+            toggleDBError();
+            toggleLatency();
+            toggleVSIQuota();
+            updateSaturationValues();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+# SRE Dashboard & Observability Demo Bible
+
+This guide is your ultimate cheat sheet for the presentation. It explains the design, query math, and live demonstration steps for each of your panels.
+
+---
+
+## 🏛️ Part 1: The Core Infrastructure
+
+Your application is deployed as a **Decoupled Microservices Architecture** in your OpenShift Namespace (`devops-learning`):
+1. **Frontend Tier (`go-frontend-app`)**: Serves the user interface. It has no access to the database for security reasons. It uses JavaScript to pull data from the Backend API.
+2. **Backend Tier (`go-backend-app`)**: Connects to the PostgreSQL database, processes user authentication, runs background checks, and exposes Prometheus metrics.
+3. **Database Tier (`postgres-db`)**: A PostgreSQL instance backed by a **10 GB PersistentVolumeClaim (`postgres-pvc`)** for data durability.
+
+---
+
+## 📊 Part 2: Panel-by-Panel Deep Dive
+
+Here is the deep-dive explanation of all your dashboard panels:
+
+---
+
+### Panel 1: API Response Codes (Request Count)
+* **What it monitors**: Availability & Error Rates (SRE Golden Signal: **Errors**).
+* **The PromQL Query**:
+  ```promql
+  sum(rate(go_app_http_requests_total[1m])) by (status)
+  ```
+* **Deep Explanation of the Query**:
+  * `go_app_http_requests_total`: A raw counter that ticks up by 1 for every request.
+  * `[1m]`: Tells Prometheus to look at the last 1 minute of data.
+  * `rate(...)`: Calculates how fast the counter is rising **per second** (e.g. `0.2 requests/sec`).
+  * `sum(...) by (status)`: Groups the traffic by their HTTP status codes so you can see success (`200`) and errors (`500` or `401`) on separate lines.
+* **How to Demo the Spike**: 
+  1. Scale the database to 0 replicas: `oc scale deployment postgres-db --replicas=0 -n devops-learning`
+  2. Refresh the homepage a few times. 
+  3. **Result**: The blue `200` line will drop, and a new red **`status="500"`** line will spike up!
+  4. Restore database: `oc scale deployment postgres-db --replicas=1 -n devops-learning`
+
+---
+
+### Panel 2: API Uptime (%)
+* **What it monitors**: Service Availability SLA.
+* **The PromQL Query**:
+  ```promql
+  (sum(rate(go_app_http_requests_total{status!~"5.."}[1m])) / sum(rate(go_app_http_requests_total[1m]))) * 100
+  ```
+* **Deep Explanation of the Query**:
+  * `status!~"5.."`: Filters out any HTTP status codes that start with `5` (which represent server-side failures).
+  * `sum(...) / sum(...)`: Divides the successful requests by the total requests.
+  * `* 100`: Converts the fraction into a clean percentage percentage (e.g. `100%` uptime).
+* **How to Demo the Spike**:
+  1. Shut down the database. 
+  2. Refresh the homepage.
+  3. **Result**: Uptime percentage will drop from **`100%`** down to **`0%`** immediately!
+
+---
+
+### Panel 3: 95th Percentile API Latency (seconds)
+* **What it monitors**: API speed (SRE Golden Signal: **Latency**).
+* **The PromQL Query**:
+  ```promql
+  histogram_quantile(0.95, sum(rate(go_app_http_request_duration_seconds_bucket[1m])) by (le))
+  ```
+* **Deep Explanation of the Query**:
+  * `_bucket` and `le`: Prometheus Histograms store measurements in pre-defined speed bins (buckets) less than or equal to (`le`) a value (e.g. under 0.05s, under 0.1s).
+  * `histogram_quantile(0.95, ...)`: A mathematical function calculating the speed at which **95% of your requests are faster**. This filters out random network anomalies and gives a true picture of server performance.
+* **How to Demo the Spike**:
+  1. Open a browser tab or Postman and hit: `https://go-backend-route.../?delay=1s`
+  2. **Result**: The latency line will spike up from `0.005 seconds` (5ms) to **`1.0 second` (1000ms)**, crossing your `0.5s` SLA threshold and turning the graph Red!
+
+---
+
+### Panel 4: Real Client UI Latency (seconds)
+* **What it monitors**: Real User Monitoring (RUM) load speed (SRE Golden Signal: **User Experience**).
+* **The PromQL Query**:
+  ```promql
+  go_app_ui_client_load_duration_seconds_sum / go_app_ui_client_load_duration_seconds_count
+  ```
+* **Deep Explanation of the Query**:
+  * `_sum`: The total combined load time of all browser visits in seconds.
+  * `_count`: The total number of browser visits.
+  * `sum / count`: Calculates the true mathematical **average load time** of the webpage across all users.
+* **How to Demo the Spike**:
+  1. Open your browser DevTools (`F12`), go to the Network tab, and select your **Custom Demo Network** profile (which injects delay).
+  2. Refresh the homepage.
+  3. **Result**: The browser measures the page load latency and uploads it to the backend, causing the line to spike.
+
+---
+
+### Panel 5: PostgreSQL Storage Used (GB)
+* **What it monitors**: Disk capacity (SRE Golden Signal: **Saturation**).
+* **The PromQL Query**:
+  ```promql
+  kubelet_volume_stats_used_bytes{persistentvolumeclaim="postgres-pvc"} / 1024 / 1024 / 1024
+  ```
+* **Deep Explanation of the Query**:
+  * `kubelet_volume_stats_used_bytes`: The raw amount of data saved on the PVC in bytes.
+  * `/ 1024 / 1024 / 1024`: Divides the bytes by $1024^3$ to convert it to Gigabytes.
+* **How to Demo the Spike**:
+  1. Run this SQL command to inject 100MB of data:
+     `oc exec -it deployment/postgres-db -n devops-learning -- env PGPASSWORD=devopspass psql -U devopsuser -d devopsdb -c "CREATE TABLE IF NOT EXISTS dummy_stress (id SERIAL PRIMARY KEY, data TEXT); INSERT INTO dummy_stress (data) SELECT repeat('A', 1000) FROM generate_series(1, 100000);"`
+  2. **Result**: The gauge needle will immediately rise from `79 MiB` to **`180+ MiB`**, crossing your 15% demo alert threshold!
+  3. Clean up the database space:
+     `oc exec -it deployment/postgres-db -n devops-learning -- env PGPASSWORD=devopspass psql -U devopsuser -d devopsdb -c "DROP TABLE dummy_stress;"`
+     `oc exec -it deployment/postgres-db -n devops-learning -- env PGPASSWORD=devopspass psql -U devopsuser -d devopsdb -c "VACUUM FULL;"`
+
+---
+
+### Panel 6: Security: Failed Logins
+* **What it monitors**: Security & Unauthorized Access anomalies.
+* **The PromQL Query**:
+  ```promql
+  sum(rate(go_app_security_failed_logins_total[1m]))
+  ```
+* **Deep Explanation of the Query**:
+  * `go_app_security_failed_logins_total`: A custom counter that increments every time a login attempt fails.
+  * `rate(...[1m])`: Shows how many failed attempts are occurring per second over a 1-minute window.
+* **How to Demo the Spike**:
+  1. In the login box on the homepage, type a wrong password and click **Access Panel** 10 times quickly.
+  2. **Result**: The chart line will spike, and the brute-force attack alert will trigger!
+
+---
+
+### Panel 7: VSI Utilization vs. Quota Limit
+* **What it monitors**: Cloud quota saturation limits.
+* **The PromQL Query 1 (Active VMs)**: `go_app_vsi_active_count` (Gauge)
+* **The PromQL Query 2 (Max Quota)**: `go_app_vsi_quota_limit` (Gauge)
+* **How to Demo the Spike**:
+  1. Click **`Provision Mock VSI`** on the homepage.
+  2. **Result**: The active VM count line will step up from `5` to `6`, showing you are moving closer to your `25` VM quota limit.
+
+---
+
+## 🧠 Part 3: Q&A Cheat Sheet (Impress your Mentor)
+
+* **Q: Why does PostgreSQL stay around 319 MB even after cleaning it?**
+  * *Answer*: PostgreSQL pre-allocates **Write-Ahead Logs (pg_wal)** of 16MB each to guarantee data recovery in case of system crashes. This is normal, healthy database engine overhead.
+* **Q: What is the difference between Memory and Storage in your database YAML?**
+  * *Answer*: Memory (256MB RAM) is the temporary, high-speed workspace used to run queries. Storage (10GB PVC) is the permanent virtual hard drive volume where the actual database files are saved in the cloud.
+* **Q: Why does the Sysdig Agent find your metrics automatically?**
+  * *Answer*: Because we annotated our Kubernetes deployment manifest with `prometheus.io/scrape: "true"` and `prometheus.io/port: "8080"`. The Sysdig Agent automatically queries the Kubernetes API for annotated pods, discovers their IPs, and scrapes their `/metrics` pages.

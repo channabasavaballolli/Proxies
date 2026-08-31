@@ -1,0 +1,16 @@
+---
+# Source: sysdig-deploy/charts/agent/templates/rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sysdig-agent
+  namespace: ibm-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sysdig-agent
+subjects:
+  - kind: ServiceAccount
+    name: sysdig-agent
+    namespace: ibm-observe
+
